@@ -1,0 +1,10 @@
+{
+  "id": "./index.html",
+  "name": "Avtobys QR — история автобусов",
+  "short_name": "Avtobys QR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f0f0f2",
+  "theme_color": "#f0f0f2"
+}

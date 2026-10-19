@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f0f0f2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Avtobys QR">
+<title>Avtobys QR</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+--bg:#f2f3f5;
+--card:#ffffff;
+--text:#191919;
+--muted:#8d9299;
+--accent:#1f8f3e;
+--accent-dark:#187533;
+--line:#eceef1;
+--shadow:0 18px 40px rgba(15,23,42,.10);
+--ui-scale:1;
+--sheet-offset:clamp(228px,27dvh,250px);
+--safe-top:env(safe-area-inset-top,0px);
+--safe-bottom:env(safe-area-inset-bottom,0px);
+}
+
+html,
+body{
+background:transparent;
+}
+
+html{
+background:linear-gradient(to bottom,#f0f0f2 0,#f0f0f2 calc(100% - 100px),#fff calc(100% - 100px),#fff 100%);
+}
+
+body{
+margin:0;
+font-family:Roboto,sans-serif;
+color:var(--text);
+min-height:100vh;
+min-height:100dvh;
+overflow:hidden;
+overscroll-behavior:none;
+}
+
+.ticket-view{
+width:min(calc(100% / var(--ui-scale)),430px);
+min-height:calc(100vh / var(--ui-scale));
+min-height:calc(100dvh / var(--ui-scale));
+transform:scale(var(--ui-scale));
+transform-origin:top center;
+margin:0 auto;
+position:relative;
+overflow:hidden;
+}
+
+.top{
+padding:calc(22px + var(--safe-top)) 20px 0;
+text-align:center;
+width:100%;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+.install-btn{
+background:#ffffff;
+color:#1c1c1c;
+border:1px solid #e7e7ea;
+}
+
+.browser-only{
+display:flex;
+}
+
+.fullscreen-fab{
+position:fixed;
+top:calc(12px + var(--safe-top));
+right:12px;
+z-index:12;
+width:44px;
+height:44px;
+padding:0;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:rgba(255,255,255,.92);
+color:#24272c;
+border:1px solid rgba(0,0,0,.08);
+box-shadow:0 8px 22px rgba(15,23,42,.12);
+-webkit-tap-highlight-color:transparent;
+}
+
+.fullscreen-fab svg{
+width:22px;
+height:22px;
+stroke:currentColor;
+stroke-width:2;
+fill:none;
+}
+
+.top-title{
+font-size:18px;
+font-weight:600;
+color:#252525;
+margin-bottom:38px;
+max-width:280px;
+line-height:1.25;
+}
+
+.check{
+margin:0 auto 34px;
+width:68px;
+height:68px;
+background:var(--accent);
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+box-shadow:none;
+}
+
+.check svg{
+width:35px;
+height:35px;
+stroke:#fff;
+stroke-width:3;
+fill:none;
+}
+
+.success{
+font-size:28px;
+font-weight:600;
+margin-bottom:16px;
+}
+
+.price{
+font-size:43px;
+font-weight:700;
+line-height:1.1;
+margin-bottom:16px;
+}
+
+.overlay{
+position:fixed;
+inset:0;
+background:transparent;
+display:flex;
+align-items:flex-start;
+justify-content:center;
+z-index:5;
+padding-top:var(--safe-top);
+}
+
+.overlay::after{
+content:"";
+position:absolute;
+left:0;
+right:0;
+bottom:0;
+height:100px;
+background:var(--card);
+z-index:0;
+pointer-events:none;
+}
+
+.card{
+width:100%;
+max-width:390px;
+align-self:stretch;
+height:auto;
+min-height:calc(100vh - var(--sheet-offset) - var(--safe-top));
+min-height:calc(100dvh - var(--sheet-offset) - var(--safe-top));
+max-height:calc(100vh - var(--sheet-offset) - var(--safe-top));
+max-height:calc(100dvh - var(--sheet-offset) - var(--safe-top));
+overflow-y:auto;
+position:relative;
+z-index:1;
+background:var(--card);
+border-radius:24px 24px 0 0;
+padding:20px 18px calc(14px + var(--safe-bottom));
+margin-top:var(--sheet-offset);
+text-align:center;
+box-shadow:0 -4px 18px rgba(15,23,42,.08);
+display:flex;
+flex-direction:column;
+align-items:center;
+overflow:hidden;
+}
+
+.card-title{
+grid-column:1;
+text-align:left;
+font-size:20px;
+font-weight:700;
+line-height:1.15;
+margin-bottom:0;
+max-width:none;
+justify-self:start;
+align-self:center;
+}
+
+.card-head{
+display:grid;
+grid-template-columns:minmax(0,1fr) 42px;
+align-items:center;
+gap:10px;
+margin-bottom:20px;
+width:100%;
+}
+
+.card-head .card-title{
+margin-bottom:0;
+}
+
+.card-close{
+grid-column:2;
+display:flex;
+align-items:center;
+justify-content:center;
+width:42px;
+height:42px;
+color:#666;
+font-size:31px;
+font-weight:400;
+line-height:1;
+flex:0 0 auto;
+background:transparent;
+padding:0;
+margin:0;
+}
+
+#qrcode{
+width:188px;
+min-height:188px;
+margin:6px auto 24px;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+#qrcode canvas{
+width:100%;
+height:auto;
+display:block;
+}
+
+.gray{
+color:var(--muted);
+font-size:15px;
+font-weight:500;
+margin-bottom:22px;
+}
+
+.bus{
+font-size:17px;
+font-weight:700;
+margin-top:8px;
+margin-bottom:14px;
+letter-spacing:0;
+}
+
+.date{
+font-size:16px;
+color:#666;
+font-weight:500;
+margin-bottom:4px;
+}
+
+.amount{
+font-size:15px;
+line-height:1.25;
+color:#555;
+font-weight:500;
+margin-bottom:24px;
+}
+
+.bottom{
+display:flex;
+justify-content:center;
+gap:26px;
+width:100%;
+font-size:12px;
+color:#8b8b8b;
+margin-top:auto;
+padding-bottom:2px;
+}
+
+.bottom-item{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:6px;
+width:112px;
+min-height:58px;
+border-radius:14px;
+-webkit-tap-highlight-color:transparent;
+}
+
+.bottom-item svg{
+width:24px;
+height:24px;
+stroke:#6f7480;
+stroke-width:1.9;
+stroke-linecap:round;
+stroke-linejoin:round;
+fill:none;
+}
+
+.bottom-item div{
+font-size:12px;
+line-height:1.2;
+font-weight:500;
+white-space:nowrap;
+}
+
+.panel,
+.scanner-sheet{
+position:fixed;
+inset:0;
+background:rgba(7,12,20,.42);
+z-index:30;
+padding:14px 14px calc(14px + var(--safe-bottom));
+display:flex;
+align-items:flex-end;
+overflow:auto;
+}
+
+.hidden{
+display:none;
+}
+
+.panel-card,
+.scanner-card{
+width:100%;
+max-width:520px;
+margin:0 auto;
+background:#fff;
+border-radius:24px;
+padding:22px 18px 20px;
+box-shadow:var(--shadow);
+text-align:center;
+}
+
+.panel h2,
+.scanner-card h2{
+margin:0 0 8px;
+font-size:22px;
+}
+
+.subtitle{
+margin:0 0 18px;
+font-size:14px;
+color:var(--muted);
+line-height:1.4;
+}
+
+.field-label{
+display:block;
+margin:14px 0 8px;
+font-size:14px;
+font-weight:500;
+text-align:center;
+}
+
+select{
+width:100%;
+padding:14px 15px;
+border-radius:14px;
+border:1px solid var(--line);
+background:#f8f9fb;
+font-size:16px;
+outline:none;
+text-align:center;
+text-align-last:center;
+}
+
+input{
+width:100%;
+padding:14px 15px;
+border-radius:14px;
+border:1px solid var(--line);
+background:#f8f9fb;
+font-size:16px;
+outline:none;
+text-align:center;
+}
+
+.actions{
+display:flex;
+flex-direction:column;
+gap:10px;
+width:100%;
+max-width:366px;
+margin:16px auto 0;
+}
+
+button{
+width:100%;
+min-height:48px;
+padding:13px 14px;
+font-size:16px;
+background:var(--accent);
+color:#fff;
+border:none;
+border-radius:14px;
+cursor:pointer;
+font-weight:500;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:8px;
+line-height:1.2;
+}
+
+.ghost{
+background:#f2f5f7;
+color:#1f2937;
+}
+
+.fullscreen-hint{
+position:fixed;
+left:16px;
+right:16px;
+bottom:calc(16px + var(--safe-bottom));
+z-index:45;
+max-width:430px;
+margin:0 auto;
+padding:12px 14px;
+border-radius:16px;
+background:#111827;
+color:#fff;
+font-size:14px;
+line-height:1.35;
+box-shadow:0 12px 28px rgba(15,23,42,.22);
+}
+
+.video-wrap{
+position:relative;
+overflow:hidden;
+border-radius:22px;
+background:#0f172a;
+aspect-ratio:3/4;
+margin:14px 0;
+}
+
+video{
+width:100%;
+height:100%;
+object-fit:cover;
+display:block;
+}
+
+.scan-guide{
+position:absolute;
+left:50%;
+bottom:18%;
+transform:translateX(-50%);
+width:74%;
+padding:12px 14px;
+border-radius:16px;
+background:rgba(255,255,255,.14);
+backdrop-filter:blur(10px);
+color:#fff;
+font-size:14px;
+line-height:1.4;
+border:1px solid rgba(255,255,255,.22);
+}
+
+.status{
+min-height:22px;
+font-size:14px;
+color:#46505a;
+}
+
+.status.error{color:#c03221}
+.status.success{color:var(--accent-dark)}
+
+canvas.capture{
+display:none;
+}
+
+@media (min-width:700px){
+body{display:flex;justify-content:center}
+.top{max-width:370px}
+.overlay{width:100%}
+}
+
+@media (max-width:480px){
+.ticket-view{width:calc(100% / var(--ui-scale))}
+.success{font-size:27px}
+.price{font-size:42px}
+.card{max-width:none;width:100%}
+.overlay{left:0;right:0;width:100%}
+.panel-card,
+.scanner-card{max-height:calc(100dvh - 28px - var(--safe-bottom));overflow:auto}
+}
+
+@media (max-height:780px){
+:root{--sheet-offset:clamp(208px,27dvh,228px)}
+.top-title{margin-bottom:24px}
+.check{width:62px;height:62px;margin-bottom:24px}
+.success{margin-bottom:12px}
+.price{margin-bottom:10px}
+#qrcode{width:164px;min-height:164px;margin-bottom:18px}
+.gray{margin-bottom:18px}
+.amount{margin-bottom:18px}
+}
+.panel-card{max-height:calc(100dvh - 28px - var(--safe-bottom));overflow-y:auto}
+.history-launch-row{
+display:flex;align-items:center;justify-content:space-between;gap:12px;
+margin:16px 0 18px;padding:14px 15px;border:1px solid var(--line);
+border-radius:18px;background:#f8f9fb;text-align:left;
+}
+.history-launch-copy{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0}
+.history-launch-title{font-size:15px;font-weight:700}
+.history-launch-desc{color:var(--muted);font-size:12px;line-height:1.3}
+.history-launch{
+display:flex;flex-shrink:0;align-items:center;justify-content:center;gap:8px;
+width:auto;min-width:112px;min-height:42px;padding:9px 12px;
+border-radius:13px;font-size:14px;
+}
+.history-count{min-width:22px;padding:3px 6px;border-radius:10px;background:rgba(255,255,255,.2);font-size:12px}
+.history-panel{z-index:35}
+.history-panel-card{text-align:left}
+.history-panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.history-panel-header h2{margin:0 0 5px;text-align:left}
+.history-panel-subtitle{margin:0;color:var(--muted);font-size:14px;line-height:1.4}
+.history-close{
+flex:0 0 42px;width:42px;height:42px;min-height:42px;padding:0;
+border-radius:50%;background:#f2f5f7;color:#1f2937;font-size:27px;
+}
+.history-list{display:flex;flex-direction:column;gap:10px}
+.history-empty{margin:12px 0 0;padding:15px;border-radius:14px;background:#f8f9fb;color:var(--muted);font-size:14px;line-height:1.45;text-align:center}
+.history-route{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#fff}
+.history-route-header{display:flex;align-items:center;gap:8px;padding:8px 10px}
+.history-route-toggle{
+display:flex;flex:1;align-items:center;justify-content:space-between;gap:10px;
+width:auto;min-height:48px;padding:8px 10px;border-radius:12px;
+background:#f8f9fb;color:#1f2937;text-align:left;font-size:16px;font-weight:700;
+}
+.history-route-title{display:flex;align-items:center;gap:10px}
+.history-route-icon{
+display:grid;place-items:center;width:34px;height:34px;border-radius:11px;
+background:#e8f5eb;color:var(--accent-dark);font-size:17px;
+}
+.history-route-count{padding:4px 8px;border-radius:10px;background:#f2f5f7;color:#68717d;font-size:12px;font-weight:500;white-space:nowrap}
+.history-route-arrow{color:#6b7280;font-size:20px}
+.history-delete{
+flex:0 0 40px;width:40px;min-height:40px;padding:0;
+border:1px solid #f2caca;border-radius:12px;background:#fff7f7;color:#b42318;font-size:19px;
+}
+.history-route-body{padding:2px 10px 10px}
+.history-code-list{display:flex;flex-direction:column;gap:7px}
+.history-code-row{display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:8px;align-items:center}
+.history-select{
+display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+min-height:54px;padding:9px 12px;border:1px solid #edf0f2;border-radius:12px;
+background:#fff;color:#1f2937;text-align:left;overflow-wrap:anywhere;
+}
+.history-code-value{font-size:14px;font-weight:700}
+
+.history-delete-code{
+width:42px;height:42px;min-height:42px;padding:0;border:1px solid #f2caca;
+border-radius:12px;background:#fff7f7;color:#b42318;font-size:22px;
+}
+.history-route-empty{margin:0;padding:12px;border-radius:12px;background:#f8f9fb;color:var(--muted);font-size:13px;line-height:1.4}
+@media(max-width:420px){
+.history-launch{min-width:98px}
+.history-panel-card{padding-left:15px;padding-right:15px}
+}
+.demo-stamp{display:block;max-width:320px;margin:0 auto 16px;padding:7px 12px;border:1px solid #b42318;border-radius:10px;background:#fff7f7;color:#b42318;font-size:16px;line-height:1.25;text-align:center}
+.check{display:none!important}
+
+</style>
+</head>
+
+<body>
+<div class="ticket-view" id="ticketView">
+<button class="fullscreen-fab browser-only hidden" id="ticketFullscreenBtn" type="button" onclick="goFullscreen()" aria-label="Полноэкранный режим">
+<svg viewBox="0 0 24 24" aria-hidden="true">
+<path d="M8 3H3V8"/>
+<path d="M16 3H21V8"/>
+<path d="M3 16V21H8"/>
+<path d="M21 16V21H16"/>
+<path d="M3 3L9 9"/>
+<path d="M21 3L15 9"/>
+<path d="M3 21L9 15"/>
+<path d="M21 21L15 15"/>
+</svg>
+</button>
+<div class="top">
+<div class="top-title">Билет Avtobys. Оплата проезда</div>
+
+<div class="check">
+<svg viewBox="0 0 24 24" aria-hidden="true">
+<path d="M4 13l5 5L20 6"/>
+</svg>
+</div>
+
+<div class="success demo-stamp">ДЕМО · НЕ ОПЛАТА</div>
+<div class="price">80 ₸</div>
+</div>
+
+<div class="overlay">
+<div class="card">
+<div class="card-head">
+<div class="card-title">Покажите QR-код контролёру</div>
+<button class="card-close" type="button" onclick="history.back()" aria-label="Назад">×</button>
+</div>
+<div id="qrcode"></div>
+<div class="gray">ДЕМО · QR не подтверждает оплату</div>
+<div class="bus" id="bus">704BD04</div>
+<div class="date" id="date">09 апреля 2026 17:22</div>
+<div class="amount" id="amount">Сумма 80 ₸</div>
+
+<div class="bottom">
+<div class="bottom-item">
+<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+<path d="M8 4.5H16C16.8 4.5 17.5 5.2 17.5 6V19L15.5 17.8L13.5 19L11.5 17.8L9.5 19L7.5 17.8V6C7.5 5.2 8.2 4.5 8 4.5Z"/>
+<path d="M10 8.5H14.5"/>
+<path d="M10 12H14.5"/>
+<path d="M10 15.5H12.8"/>
+</svg>
+<div>Квитанция</div>
+</div>
+
+<div class="bottom-item">
+<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+<path d="M12 15.5V4.5"/>
+<path d="M8.5 8L12 4.5L15.5 8"/>
+<path d="M6.5 12.5V18C6.5 18.8 7.2 19.5 8 19.5H16C16.8 19.5 17.5 18.8 17.5 18V12.5"/>
+</svg>
+<div>Поделиться</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="panel" id="panel">
+<div class="panel-card">
+<h2>Настройки</h2>
+<p class="subtitle">Можно ввести код вручную или открыть камеру и считать текст под QR. Код и текущее время подставятся автоматически.</p>
+
+<div class="history-launch-row">
+<div class="history-launch-copy">
+<span class="history-launch-title">История автобусов</span>
+<span class="history-launch-desc">Маршруты и сохранённые коды</span>
+</div>
+<button class="history-launch" type="button" onclick="openBusHistory()">
+<span>Открыть</span>
+<span class="history-count" id="historyCount">0</span>
+</button>
+</div>
+
+<label class="field-label" for="routeNumberInput">Номер маршрута</label>
+<input id="routeNumberInput" type="text" placeholder="Например, 47" autocomplete="off" maxlength="40">
+
+<label class="field-label" for="busInput">Код автобуса</label>
+<input id="busInput" value="704BD04" autocomplete="off" spellcheck="false">
+
+<label class="field-label" for="dateInput">Дата</label>
+<input type="date" id="dateInput">
+
+<label class="field-label" for="timeInput">Время</label>
+<input type="time" id="timeInput">
+
+<label class="field-label" for="scaleSelect">Масштаб</label>
+<select id="scaleSelect">
+<option value="1">Обычный</option>
+<option value="1.05">+1</option>
+<option value="1.1">+2</option>
+<option value="1.15">+3</option>
+</select>
+
+<div class="actions">
+<button type="button" onclick="setNowAndApply()">Поставить текущее время</button>
+<button type="button" onclick="openScanner()">Сканировать текст камерой</button>
+<button type="button" onclick="applyManual()">Применить</button>
+<button class="ghost browser-only hidden" id="fullscreenBtn" type="button" onclick="goFullscreen()">Полноэкранный режим</button>
+<button class="install-btn hidden" id="installBtn" type="button">Скачать приложение</button>
+</div>
+</div>
+</div>
+
+<div class="panel history-panel hidden" id="historyPanel">
+<div class="panel-card history-panel-card">
+<div class="history-panel-header">
+<div>
+<h2>История автобусов</h2>
+<p class="history-panel-subtitle">Выбери маршрут, чтобы увидеть его сохранённые коды.</p>
+</div>
+<button class="history-close" type="button" onclick="closeBusHistory()" aria-label="Закрыть историю">×</button>
+</div>
+<div class="history-list" id="busHistoryList" aria-live="polite"></div>
+<p class="history-empty" id="historyEmpty">История пока пустая. Введи номер маршрута и код автобуса в настройках, затем нажми «Применить».</p>
+</div>
+</div>
+
+<div class="scanner-sheet hidden" id="scannerSheet">
+<div class="scanner-card">
+<h2>Сканирование текста</h2>
+<p class="subtitle">Наведи камеру на подпись под QR, например на <strong>528BC04</strong>. Приложение попробует распознать текст и сразу поставит текущее время.</p>
+<div class="video-wrap">
+<video id="camera" playsinline autoplay muted></video>
+<div class="scan-guide">Держи в кадре только код под QR, без лишнего текста вокруг</div>
+</div>
+<div class="status" id="scanStatus">Камера ещё не запущена.</div>
+<div class="actions">
+<button type="button" onclick="captureText()">Считать текст сейчас</button>
+<button type="button" class="ghost" onclick="stopScanner()">Закрыть камеру</button>
+</div>
+<canvas id="captureCanvas" class="capture"></canvas>
+</div>
+</div>
+
+<script>
+const bus = document.getElementById("bus");
+const dateNode = document.getElementById("date");
+const qrcode = document.getElementById("qrcode");
+const panel = document.getElementById("panel");
+const busInput = document.getElementById("busInput");
+const dateInput = document.getElementById("dateInput");
+const timeInput = document.getElementById("timeInput");
+const scaleSelect = document.getElementById("scaleSelect");
+const scannerSheet = document.getElementById("scannerSheet");
+const installBtn = document.getElementById("installBtn");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+const ticketFullscreenBtn = document.getElementById("ticketFullscreenBtn");
+const camera = document.getElementById("camera");
+const captureCanvas = document.getElementById("captureCanvas");
+const scanStatus = document.getElementById("scanStatus");
+
+let stream;
+let isTicketVisible = true;
+let deferredInstallPrompt = null;
+let hasShownInstallPrompt = false;
+let fullscreenHintTimer = null;
+const SCALE_STORAGE_KEY = "avtobys-scale";
+const routeNumberInput = document.getElementById("routeNumberInput");
+const busHistoryList = document.getElementById("busHistoryList");
+const historyEmpty = document.getElementById("historyEmpty");
+const historyPanel = document.getElementById("historyPanel");
+const historyCount = document.getElementById("historyCount");
+const BUS_HISTORY_STORAGE_KEY = "avtobys-bus-history-v1";
+let busHistory = loadBusHistory();
+const expandedBusRoutes = new Set();
+
+function createHistoryId(){
+return Date.now().toString(36) + Math.random().toString(36).slice(2,9);
+}
+
+function loadBusHistory(){
+try{
+const saved = JSON.parse(localStorage.getItem(BUS_HISTORY_STORAGE_KEY) || "[]");
+if(!Array.isArray(saved)) return [];
+return saved
+.filter(route => route && typeof route.number === "string" && Array.isArray(route.codes))
+.map(route => ({
+id:String(route.id || createHistoryId()),
+number:route.number.trim(),
+codes:route.codes
+.map(code => {
+if(typeof code === "string"){
+return {id:createHistoryId(), value:code.trim().toUpperCase().replace(/\s+/g,"")};
+}
+if(!code || typeof code.value !== "string") return null;
+return {id:String(code.id || createHistoryId()), value:code.value.trim().toUpperCase().replace(/\s+/g,"")};
+})
+.filter(code => code && code.value)
+}))
+.filter(route => route.number);
+}catch(error){
+return [];
+}
+}
+
+function saveBusHistory(){
+try{
+localStorage.setItem(BUS_HISTORY_STORAGE_KEY, JSON.stringify(busHistory));
+}catch(error){
+alert("Не удалось сохранить историю в памяти браузера.");
+}
+renderBusHistory();
+}
+
+function renderBusHistory(){
+busHistoryList.innerHTML = "";
+historyCount.textContent = String(busHistory.length);
+historyEmpty.classList.toggle("hidden", busHistory.length > 0);
+
+busHistory.forEach(route => {
+const card = document.createElement("div");
+card.className = "history-route";
+
+const header = document.createElement("div");
+header.className = "history-route-header";
+
+const toggleButton = document.createElement("button");
+toggleButton.type = "button";
+toggleButton.className = "history-route-toggle";
+toggleButton.setAttribute("aria-expanded", String(expandedBusRoutes.has(route.id)));
+
+const titleWrap = document.createElement("span");
+titleWrap.className = "history-route-title";
+
+const icon = document.createElement("span");
+icon.className = "history-route-icon";
+icon.textContent = "↗";
+
+const title = document.createElement("span");
+title.textContent = "Автобус № " + route.number;
+titleWrap.append(icon, title);
+
+const routeCount = document.createElement("span");
+routeCount.className = "history-route-count";
+const codeCount = route.codes.length;
+routeCount.textContent = codeCount + (codeCount === 1 ? " код" : codeCount >= 2 && codeCount <= 4 ? " кода" : " кодов");
+
+const arrow = document.createElement("span");
+arrow.className = "history-route-arrow";
+arrow.textContent = expandedBusRoutes.has(route.id) ? "⌃" : "⌄";
+toggleButton.append(titleWrap, routeCount, arrow);
+toggleButton.addEventListener("click", () => {
+if(expandedBusRoutes.has(route.id)){
+expandedBusRoutes.delete(route.id);
+}else{
+expandedBusRoutes.add(route.id);
+}
+renderBusHistory();
+});
+
+const deleteRouteButton = document.createElement("button");
+deleteRouteButton.type = "button";
+deleteRouteButton.className = "history-delete";
+deleteRouteButton.textContent = "×";
+deleteRouteButton.setAttribute("aria-label", "Удалить маршрут " + route.number);
+deleteRouteButton.addEventListener("click", () => removeBusRoute(route.id));
+
+header.append(toggleButton, deleteRouteButton);
+card.appendChild(header);
+
+if(expandedBusRoutes.has(route.id)){
+const body = document.createElement("div");
+body.className = "history-route-body";
+
+if(route.codes.length === 0){
+const emptyRoute = document.createElement("p");
+emptyRoute.className = "history-route-empty";
+emptyRoute.textContent = "Пока нет кодов. Введи код в настройках и нажми «Применить».";
+body.appendChild(emptyRoute);
+}else{
+const codes = document.createElement("div");
+codes.className = "history-code-list";
+
+route.codes.forEach(code => {
+const row = document.createElement("div");
+row.className = "history-code-row";
+
+const selectButton = document.createElement("button");
+selectButton.type = "button";
+selectButton.className = "history-select";
+selectButton.setAttribute("aria-label", "Подставить код автобуса " + code.value);
+
+const codeValue = document.createElement("span");
+codeValue.className = "history-code-value";
+codeValue.textContent = code.value;
+
+selectButton.appendChild(codeValue);
+selectButton.addEventListener("click", () => selectSavedBusCode(route.number, code.value));
+
+const deleteCodeButton = document.createElement("button");
+deleteCodeButton.type = "button";
+deleteCodeButton.className = "history-delete-code";
+deleteCodeButton.textContent = "×";
+deleteCodeButton.setAttribute("aria-label", "Удалить код " + code.value);
+deleteCodeButton.addEventListener("click", () => removeBusCode(route.id, code.id));
+
+row.append(selectButton, deleteCodeButton);
+codes.appendChild(row);
+});
+
+body.appendChild(codes);
+}
+
+card.appendChild(body);
+}
+
+busHistoryList.appendChild(card);
+});
+}
+
+function saveCurrentCodeToHistory(routeValue, codeValue){
+const number = (routeValue || "").trim().replace(/\s+/g," ");
+const value = (codeValue || "").trim().toUpperCase().replace(/\s+/g,"");
+if(!number || !value) return;
+
+let route = busHistory.find(item => item.number.toLocaleLowerCase() === number.toLocaleLowerCase());
+if(!route){
+route = {id:createHistoryId(), number, codes:[]};
+busHistory.unshift(route);
+}
+if(!route.codes.some(code => code.value.toLocaleUpperCase() === value)){
+route.codes.push({id:createHistoryId(), value});
+}
+expandedBusRoutes.add(route.id);
+saveBusHistory();
+}
+function removeBusRoute(routeId){
+const route = busHistory.find(item => item.id === routeId);
+if(!route) return;
+const message = route.codes.length
+? "Удалить маршрут " + route.number + " вместе со всеми сохранёнными кодами?"
+: "Удалить маршрут " + route.number + "?";
+if(!window.confirm(message)) return;
+expandedBusRoutes.delete(routeId);
+busHistory = busHistory.filter(item => item.id !== routeId);
+saveBusHistory();
+}
+
+function removeBusCode(routeId, codeId){
+const route = busHistory.find(item => item.id === routeId);
+if(!route) return;
+const code = route.codes.find(item => item.id === codeId);
+if(!code || !window.confirm("Удалить код " + code.value + "?")) return;
+route.codes = route.codes.filter(item => item.id !== codeId);
+saveBusHistory();
+}
+
+function selectSavedBusCode(routeNumber, codeValue){
+const ticketTime = new Date(Date.now() - 5 * 60 * 1000);
+routeNumberInput.value = routeNumber;
+busInput.value = codeValue;
+renderTicket(codeValue, ticketTime);
+showTicket();
+}
+function formatHumanDate(dateValue){
+return new Intl.DateTimeFormat("ru-RU",{
+day:"2-digit",
+month:"long",
+year:"numeric",
+hour:"2-digit",
+minute:"2-digit"
+}).format(dateValue).replace(" г. в", "");
+}
+
+function syncInputsWithDate(dateValue){
+const year = dateValue.getFullYear();
+const month = String(dateValue.getMonth() + 1).padStart(2,"0");
+const day = String(dateValue.getDate()).padStart(2,"0");
+const hours = String(dateValue.getHours()).padStart(2,"0");
+const minutes = String(dateValue.getMinutes()).padStart(2,"0");
+
+dateInput.value = year + "-" + month + "-" + day;
+timeInput.value = hours + ":" + minutes;
+}
+
+function makeQR(){
+qrcode.innerHTML = "";
+QRCode.toCanvas("DEMO - NOT A VALID TICKET",{width:188,margin:1},(error,canvas)=>{
+if(error){
+qrcode.textContent = "ДЕМО QR недоступен";
+return;
+}
+canvas.setAttribute("role","img");
+canvas.setAttribute("aria-label","Демо QR-код, не билет");
+qrcode.appendChild(canvas);
+});
+}
+
+function applyScale(scaleValue){
+const normalizedScale = String(scaleValue || "1");
+document.documentElement.style.setProperty("--ui-scale", normalizedScale);
+scaleSelect.value = normalizedScale;
+localStorage.setItem(SCALE_STORAGE_KEY, normalizedScale);
+}
+
+function isStandaloneMode(){
+return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function updateInstallVisibility(){
+if(isStandaloneMode()){
+installBtn.classList.add("hidden");
+fullscreenBtn.classList.add("hidden");
+ticketFullscreenBtn.classList.add("hidden");
+return;
+}
+
+fullscreenBtn.classList.remove("hidden");
+ticketFullscreenBtn.classList.toggle("hidden", !isTicketVisible);
+
+if(deferredInstallPrompt){
+installBtn.classList.remove("hidden");
+return;
+}
+
+installBtn.classList.add("hidden");
+}
+
+function showFullscreenHint(message){
+let hint = document.getElementById("fullscreenHint");
+if(!hint){
+hint = document.createElement("div");
+hint.id = "fullscreenHint";
+hint.className = "fullscreen-hint";
+document.body.appendChild(hint);
+}
+hint.textContent = message;
+clearTimeout(fullscreenHintTimer);
+fullscreenHintTimer = setTimeout(() => {
+hint.remove();
+}, 5200);
+}
+
+async function goFullscreen(){
+try{
+const target = document.documentElement;
+const request = target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen;
+if(request){
+await request.call(target);
+return;
+}
+showFullscreenHint("На iPhone настоящий полноэкранный режим включается через «Поделиться» → «На экран Домой», потом открой Avtobys с иконки.");
+}catch(error){
+showFullscreenHint("Браузер не дал включить полноэкранный режим. На iPhone добавь страницу на экран Домой и открой с иконки.");
+}
+}
+
+function renderTicket(codeValue,dateValue){
+bus.textContent = codeValue;
+dateNode.textContent = formatHumanDate(dateValue);
+syncInputsWithDate(dateValue);
+busInput.value = codeValue;
+makeQR(codeValue + "|" + dateValue.toISOString());
+}
+
+function showSettings(pushStateValue = true){
+historyPanel.classList.add("hidden");
+panel.classList.remove("hidden");
+ticketFullscreenBtn.classList.add("hidden");
+isTicketVisible = false;
+if(pushStateValue){
+history.pushState({screen:"settings"},"");
+}
+}
+
+function showBusHistory(pushStateValue = true){
+panel.classList.add("hidden");
+historyPanel.classList.remove("hidden");
+ticketFullscreenBtn.classList.add("hidden");
+isTicketVisible = false;
+renderBusHistory();
+if(pushStateValue){
+history.pushState({screen:"history"},"");
+}
+}
+
+function openBusHistory(){
+showBusHistory(true);
+}
+
+function closeBusHistory(){
+history.back();
+}
+function showTicket(fromHistory = false){
+historyPanel.classList.add("hidden");
+panel.classList.add("hidden");
+scannerSheet.classList.add("hidden");
+stopTracks();
+isTicketVisible = true;
+updateInstallVisibility();
+if(!fromHistory){
+history.pushState({screen:"ticket"},"");
+}
+}
+
+function applyManual(){
+const codeValue = (busInput.value || "").trim().toUpperCase().replace(/\s+/g,"");
+if(!codeValue){
+busInput.focus();
+return;
+}
+
+let dateValue = new Date();
+if(dateInput.value && timeInput.value){
+dateValue = new Date(dateInput.value + "T" + timeInput.value);
+}
+
+saveCurrentCodeToHistory(routeNumberInput.value, codeValue);
+renderTicket(codeValue,dateValue);
+showTicket();
+}
+
+function setNowAndApply(){
+const now = new Date();
+if(busInput.value.trim()){
+ const codeValue = busInput.value.trim().toUpperCase().replace(/\s+/g,"");
+saveCurrentCodeToHistory(routeNumberInput.value, codeValue);
+renderTicket(codeValue, now);
+ showTicket();
+}else{
+ syncInputsWithDate(now);
+}
+}
+
+async function openScanner(){
+scannerSheet.classList.remove("hidden");
+scanStatus.className = "status";
+scanStatus.textContent = "Запрашиваю доступ к камере...";
+
+try{
+stream = await navigator.mediaDevices.getUserMedia({
+video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
+audio:false
+});
+camera.srcObject = stream;
+scanStatus.textContent = "Камера активна. Наведи на текст и нажми «Считать текст сейчас».";
+}catch(error){
+scanStatus.className = "status error";
+scanStatus.textContent = "Не удалось открыть камеру. Разреши доступ или открой сайт по HTTPS.";
+}
+}
+
+function stopTracks(){
+if(stream){
+stream.getTracks().forEach(track=>track.stop());
+stream = null;
+}
+camera.srcObject = null;
+}
+
+function stopScanner(){
+stopTracks();
+scannerSheet.classList.add("hidden");
+scanStatus.className = "status";
+scanStatus.textContent = "Камера ещё не запущена.";
+}
+
+function normalizeDetectedCode(text){
+const cleaned = text.toUpperCase().replace(/[^A-Z0-9\s]/g," ");
+const matches = cleaned.match(/[0-9]{2,4}[A-Z]{1,3}[0-9]{2,4}|[A-Z0-9]{6,10}/g) || [];
+return matches.find(item => /[A-Z]/.test(item) && /\d/.test(item)) || "";
+}
+
+async function captureText(){
+if(!camera.videoWidth){
+scanStatus.className = "status error";
+scanStatus.textContent = "Нет изображения с камеры. Подожди секунду и попробуй снова.";
+return;
+}
+
+scanStatus.className = "status";
+scanStatus.textContent = "Распознаю текст...";
+
+const context = captureCanvas.getContext("2d");
+captureCanvas.width = camera.videoWidth;
+captureCanvas.height = camera.videoHeight;
+context.drawImage(camera,0,0,captureCanvas.width,captureCanvas.height);
+
+try{
+const result = await Tesseract.recognize(captureCanvas,"eng",{
+logger(message){
+if(message.status === "recognizing text"){
+scanStatus.textContent = "Распознаю текст... " + Math.round(message.progress * 100) + "%";
+}
+}
+});
+
+const detectedCode = normalizeDetectedCode(result.data.text || "");
+if(!detectedCode){
+scanStatus.className = "status error";
+scanStatus.textContent = "Код не найден. Попробуй приблизить камеру и оставить в кадре только подпись под QR.";
+return;
+}
+
+const now = new Date();
+saveCurrentCodeToHistory(routeNumberInput.value, detectedCode);
+renderTicket(detectedCode, now);
+scanStatus.className = "status success";
+scanStatus.textContent = "Найден код: " + detectedCode + ". Время обновлено автоматически.";
+showTicket();
+setTimeout(() => {
+scannerSheet.classList.add("hidden");
+}, 600);
+}catch(error){
+scanStatus.className = "status error";
+scanStatus.textContent = "Ошибка распознавания. Попробуй ещё раз при лучшем освещении.";
+}
+}
+
+window.addEventListener("popstate", event => {
+const targetScreen = event.state && event.state.screen ? event.state.screen : "settings";
+if(targetScreen === "ticket"){
+showTicket(true);
+return;
+}
+if(targetScreen === "history"){
+showBusHistory(false);
+return;
+}
+showSettings(false);
+});
+window.addEventListener("beforeunload", stopTracks);
+
+window.addEventListener("beforeinstallprompt", event => {
+event.preventDefault();
+deferredInstallPrompt = event;
+updateInstallVisibility();
+});
+
+installBtn.addEventListener("click", async () => {
+if(!deferredInstallPrompt){
+return;
+}
+
+deferredInstallPrompt.prompt();
+await deferredInstallPrompt.userChoice.catch(() => {});
+deferredInstallPrompt = null;
+updateInstallVisibility();
+});
+
+window.addEventListener("load", () => {
+setTimeout(async () => {
+if(isStandaloneMode() || !deferredInstallPrompt || hasShownInstallPrompt){
+return;
+}
+
+hasShownInstallPrompt = true;
+deferredInstallPrompt.prompt();
+await deferredInstallPrompt.userChoice.catch(() => {});
+deferredInstallPrompt = null;
+updateInstallVisibility();
+}, 900);
+});
+
+window.addEventListener("appinstalled", () => {
+deferredInstallPrompt = null;
+updateInstallVisibility();
+});
+
+scaleSelect.addEventListener("change", event => {
+applyScale(event.target.value);
+});
+
+if("serviceWorker" in navigator){
+window.addEventListener("load", () => {
+navigator.serviceWorker.register("./sw.js").catch(() => {});
+});
+}
+
+renderBusHistory();
+applyScale(localStorage.getItem(SCALE_STORAGE_KEY) || "1");
+renderTicket("704BD04", new Date());
+history.replaceState({screen:"settings"},"");
+showSettings(false);
+updateInstallVisibility();
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
